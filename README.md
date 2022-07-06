@@ -22,7 +22,7 @@ cd src
 
 ## Prepere your route
 In order to use the multicast protocol, you need to have a proper route set. \
-Use the ip or route utilities to set a route to a specific network interface.
+Use the ip or route utilities to set a multicast route on a specific network interface.
 ```
 route add -net 224.0.0.0 netmask 240.0.0.0 eth0
 ```
