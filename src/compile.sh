@@ -1,5 +1,19 @@
 #!/bin/bash
 
+guess_sldir()
+{
+  if [ -f /usr/lib64/libpthread.a ]; then
+    SLDIR="/usr/lib64"
+  elif [ -f /usr/lib/x86_64-linux-gnu/libpthread.a ]; then
+    SLDIR="/usr/lib/x86_64-linux-gnu"
+  fi
+}
+
+find_sldir()
+{
+  echo `find /usr -type f -name libpthread.a | head -n1 | xargs dirname`
+}
+
 set -e
 
 BAKAPI="../bak_api"
@@ -8,7 +22,7 @@ DBG="-ggdb3 -DDEBUG"
 CFLAGS="-Wall -I${BAKAPI}"
 OPTCFLAGS="${CFLAGS} ${OPT}"
 DBGCFLAGS="${CFLAGS} ${DBG}"
-SLDIR=${SLDIR:-/usr/lib64}
+SLDIR=${SLDIR:-`find_sldir`}
 
 rm -f *.exe *.dbg
 
