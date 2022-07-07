@@ -20,7 +20,7 @@ cd src
 ./compile.sh
 ```
 
-## Prepere your route
+## Prepare your route
 In order to use the multicast protocol, you need to have a proper route set. \
 Use the ip or route utilities to set a multicast route on a specific network interface.
 ```
@@ -38,5 +38,5 @@ Start the receiver
 ```
 Start the sender
 ```
-./mcastsend.exe FILE
+./mcastsend.exe <FILE>
 ```
