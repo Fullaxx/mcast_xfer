@@ -10,6 +10,7 @@
 #include "cryptohash.h"
 
 u4srv_t g_srv;
+int g_sigcaught = 0;
 int g_shutdown = 0;
 char *g_ip = "224.111.111.111";
 unsigned short g_srv_port = 11111;
@@ -29,6 +30,7 @@ static void sig_handler(int signum)
 		case SIGINT:
 		case SIGTERM:
 		case SIGQUIT:
+			g_sigcaught = 1;
 			g_shutdown = 1;
 			break;
 	}
@@ -189,6 +191,8 @@ int main(int argc, char *argv[])
 	}
 
 	as_udp4_server_halt(&g_srv);
+
+	if(g_sigcaught) { exit(99); }
 
 	return 0;
 }
