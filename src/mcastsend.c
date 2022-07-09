@@ -18,7 +18,7 @@ u4clnt_t g_uc;
 char *g_ip = "224.111.111.111";
 unsigned short g_port = 11111;
 int g_mtu = 1500;
-int g_sleepdelay = 75;
+int g_sleepdelay = 0;
 chash_t *g_ch = NULL;
 
 static void send_file(char *filename, long filesize)
@@ -53,7 +53,7 @@ static void send_file(char *filename, long filesize)
 		as_udp4_client_write(&g_uc, &payload[0], bytes+9);
 		chash_upd(g_ch, &payload[9], bytes);
 		//putchar('.');
-		usleep(g_sleepdelay);
+		if(g_sleepdelay > 0) { usleep(g_sleepdelay); }
 		offset += bytes;
 		filesize -= bytes;
 	}
@@ -119,10 +119,15 @@ int main(int argc, char *argv[])
 	}
 
 	filesize = get_filesize(filename, 1);
-	printf("Started SEND of %s (%ld MB) ...\n", filename, filesize/(long)1e6);
+	printf("Started SEND of %s (%ld MB)", filename, filesize/(long)1e6);
+	printf(" [mtu:%d]", g_mtu);
+	if(g_sleepdelay > 0) { printf(" {delay:%dus}", g_sleepdelay); }
+	printf(" ...\n");
+
 	clock_gettime(CLOCK_MONOTONIC, &start);
 	send_file(filename, filesize);
 	clock_gettime(CLOCK_MONOTONIC, &stop);
+
 	ns = ((stop.tv_sec - start.tv_sec)*1e9) + (stop.tv_nsec - start.tv_nsec);
 	MB = (double)filesize/(double)1e6;
 	sec = (double)ns/(double)1e9;
