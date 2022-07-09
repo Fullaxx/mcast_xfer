@@ -11,7 +11,7 @@ guess_sldir()
 
 find_sldir()
 {
-  echo `find /usr -type f -name libpthread.a | head -n1 | xargs dirname`
+  echo `find /usr -type f -name libpthread.a 2>/dev/null | head -n1 | xargs dirname`
 }
 
 set -e
@@ -31,6 +31,10 @@ gcc ${DBGCFLAGS} mcastsend.c ${BAKAPI}/{async_udp4,cryptohash,futils}.c -lpthrea
 
 gcc ${OPTCFLAGS} mcastrecv.c ${BAKAPI}/{async_udp4,cryptohash,futils}.c -lpthread -lcrypto -o mcastrecv.exe
 gcc ${DBGCFLAGS} mcastrecv.c ${BAKAPI}/{async_udp4,cryptohash,futils}.c -lpthread -lcrypto -o mcastrecv.dbg
+
+gcc         ${OPTCFLAGS} missing_pieces.c ${BAKAPI}/futils.c -o missing_pieces.exe
+gcc         ${DBGCFLAGS} missing_pieces.c ${BAKAPI}/futils.c -o missing_pieces.dbg
+gcc -static ${OPTCFLAGS} missing_pieces.c ${BAKAPI}/futils.c -o missing_pieces.static.exe
 
 if [ -f ${SLDIR}/libpthread.a ] && [ -f ${SLDIR}/libcrypto.a ]; then
   gcc -static ${OPTCFLAGS} mcastsend.c ${BAKAPI}/{async_udp4,cryptohash,futils}.c ${SLDIR}/libpthread.a ${SLDIR}/libcrypto.a -o mcastsend.static.exe
