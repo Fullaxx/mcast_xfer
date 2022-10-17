@@ -1,6 +1,6 @@
 /*
 	cryptohash is an easy to use interface to OpenSSL hashing functions
-	Copyright (C) 2018 Brett Kuskie <fullaxx@gmail.com>
+	Copyright (C) 2022 Brett Kuskie <fullaxx@gmail.com>
 
 	This program is free software; you can redistribute it and/or modify
 	it under the terms of the GNU General Public License as published by
@@ -24,6 +24,7 @@ Compile with: cryptohash.c -o binary -lcrypto
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
 #include "cryptohash.h"
 
 chash_t* chash_new(int alg)
@@ -175,7 +176,7 @@ char* chash_get_hash(chash_t *s)
 int chash_get_sum(chash_t *s)
 {
 	int i, sum=0;
-	if(!s->complete) return -1;
+	if(!s->complete) { return -1; }
 	for(i=0; i<(s->digestlen); i++) { sum += (int) s->digest[i]; }
 	return sum;
 }
