@@ -23,14 +23,13 @@ chash_t *g_ch = NULL;
 
 static void send_file(char *filename, long filesize)
 {
-	FILE *f;
-	int n, bytes, chunksize;
+	int n, bytes;
 	long offset, noffset;
 	char *filehash;
 	unsigned char payload[65536];
 
-	chunksize = g_mtu-60;
-	f = fopen(filename, "r");
+	int chunksize = g_mtu-60;
+	FILE *f = fopen(filename, "r");
 	if(!f) { fprintf(stderr, "fopen(%s, r) failed: %s\n", filename, strerror(errno)); exit(1); }
 
 	// Start a hash object
@@ -97,12 +96,8 @@ static void process_env(void)
 
 int main(int argc, char *argv[])
 {
-	int z;
-	char *filename;
-	long filesize, ns;
 	struct timespec start;
 	struct timespec stop;
-	double MB, sec;
 
 	process_env();
 
@@ -110,15 +105,15 @@ int main(int argc, char *argv[])
 		fprintf(stderr, "%s: <file>\n", argv[0]);
 		exit(1);
 	}
-	filename = argv[1];
+	char *filename = argv[1];
 
-	z = as_udp4_connect(&g_uc, g_ip, g_port);
+	int z = as_udp4_connect(&g_uc, g_ip, g_port);
 	if(z < 0) {
 		fprintf(stderr, "as_udp4_connect(%s, %u) failed!\n", g_ip, g_port);
 		exit(1);
 	}
 
-	filesize = get_filesize(filename, 1);
+	long filesize = get_filesize(filename, 1);
 	printf("Started SEND of %s (%ld MB)", filename, filesize/(long)1e6);
 	printf(" [mtu:%d]", g_mtu);
 	if(g_sleepdelay > 0) { printf(" {delay:%dus}", g_sleepdelay); }
@@ -128,9 +123,9 @@ int main(int argc, char *argv[])
 	send_file(filename, filesize);
 	clock_gettime(CLOCK_MONOTONIC, &stop);
 
-	ns = ((stop.tv_sec - start.tv_sec)*1e9) + (stop.tv_nsec - start.tv_nsec);
-	MB = (double)filesize/(double)1e6;
-	sec = (double)ns/(double)1e9;
+	long ns = ((stop.tv_sec - start.tv_sec)*1e9) + (stop.tv_nsec - start.tv_nsec);
+	double MB = (double)filesize/(double)1e6;
+	double sec = (double)ns/(double)1e9;
 	printf("Sent %.3fMB in %.3fs: %.3f Mbps\n", MB, sec, (MB*8.0)/sec);
 
 	return 0;

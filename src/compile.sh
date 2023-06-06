@@ -19,7 +19,7 @@ set -e
 BAKAPI="../bak_api"
 OPT="-O2"
 DBG="-ggdb3 -DDEBUG"
-CFLAGS="-Wall -I${BAKAPI}"
+CFLAGS="-Wall -I${BAKAPI} -DYIELDFORSPEED"
 OPTCFLAGS="${CFLAGS} ${OPT}"
 DBGCFLAGS="${CFLAGS} ${DBG}"
 SLDIR=${SLDIR:-`find_sldir`}

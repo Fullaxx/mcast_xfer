@@ -32,11 +32,28 @@ ip route add 224.0.0.0/4 dev eth0
 ```
 
 ## Sending and Receiving
-Start the receiver
+Start the receiver with default options
 ```
 ./mcastrecv.exe
 ```
-Start the sender
+
+Start the sender with default options
 ```
+./mcastsend.exe <FILE>
+```
+
+Start the receiver with options \
+Set BAILONMISS to abort current operation on any missed chunks.
+```
+export BAILONMISS=1
+./mcastrecv.exe
+```
+
+Start the sender with options \
+Set the MTU to send packets no larger than this value. \
+Set the SLEEPDELAY to wait this many microseconds before sending another chunk.
+```
+export MTU=3000
+export SLEEPDELAY=250
 ./mcastsend.exe <FILE>
 ```

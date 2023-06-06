@@ -23,6 +23,9 @@ chash_t *g_ch = NULL;
 int g_chunksize = 0;
 long g_last = 0;
 
+int g_bail_on_miss = 0;
+int g_miss = 0;
+
 static void sig_handler(int signum)
 {
 	switch(signum) {
@@ -81,6 +84,18 @@ static void file_beg(char *buf, ssize_t len)
 	printf("Started RECV of %s (%ld MB) ...\n", g_fname_final, filesize/(long)1e6);
 }
 
+static void bail_early(void)
+{
+	fprintf(stderr, "Bailing early due to missed chunks!\n");
+	fclose(g_fh);
+	g_fh = NULL;
+	remove(g_fname_temp);
+	chash_del(g_ch);
+	g_ch = NULL;
+	g_shutdown = 1;
+	g_miss = 1;
+}
+
 static void file_mid(char *buf, ssize_t len)
 {
 	long *noffset;
@@ -96,11 +111,14 @@ static void file_mid(char *buf, ssize_t len)
 	if(offset > 0) {
 		//if(offset - g_last != g_chunksize) { printf("%ld - %ld != %d\n", offset, g_last, g_chunksize); fflush(stdout); }
 		//if(offset - g_last != g_chunksize) { printf("Chunk Diff %ld > %d\n", offset - g_last, g_chunksize); fflush(stdout); }
-		if(offset - g_last != g_chunksize) { printf("Missed %ld chunks!\n", (offset-g_last)/g_chunksize); fflush(stdout); }
+		if(offset - g_last != g_chunksize) {
+			printf("Missed %ld chunks!\n", (offset-g_last)/g_chunksize);
+			fflush(stdout);
+			if(g_bail_on_miss) { bail_early(); return; }
+		}
 	}
 	g_last = offset;
 
-	//printf("Offset %ld ...\n", offset);
 	fseek(g_fh, offset, SEEK_SET);
 	written = fwrite(buf, 1, len, g_fh);
 	if(written != len) {
@@ -115,9 +133,6 @@ static void file_mid(char *buf, ssize_t len)
 
 static void file_end(char *buf, ssize_t len)
 {
-	int z, compare;
-	char *filehash;
-
 	if((!g_fh) || (!g_ch)) { return; }
 
 	fclose(g_fh);
@@ -125,12 +140,12 @@ static void file_end(char *buf, ssize_t len)
 
 	// Finish the hash object
 	chash_fini(g_ch);
-	filehash = chash_get_hash(g_ch);
+	char *filehash = chash_get_hash(g_ch);
 
-	compare = strncmp(buf, filehash, strlen(filehash));
+	int compare = strncmp(buf, filehash, strlen(filehash));
 	if(compare == 0) {
 		printf("Ending %s with matching hash: %s\n", g_fname_final, buf);
-		z = rename(g_fname_temp, g_fname_final);
+		int z = rename(g_fname_temp, g_fname_final);
 		if(z) { fprintf(stderr, "rename(%s, %s) failed: %s\n", g_fname_temp, g_fname_final, strerror(errno)); }
 	} else {
 		fprintf(stderr, "Ending %s with FAILED hash check!\n", g_fname_final);
@@ -143,14 +158,12 @@ static void file_end(char *buf, ssize_t len)
 
 static void udb_cb(u4srv_t *s, u4clnt_t *c, char *buf, ssize_t len, void *user_data)
 {
-	int type;
-
 	if(g_shutdown) { return; }
 	if((!buf) || (len <= 0)) { return; }
 
 	//printf("UDP: %s %u %s\n", c->ddip, c->port, buf);
 
-	type = *buf;
+	int type = *buf;
 	if(type == 0) { g_conn_port = c->port; file_beg(buf+1, len-1); }
 	if(c->port != g_conn_port) { return; }	//Wrong Connection
 	if(type == 1) { file_mid(buf+1, len-1); }
@@ -159,23 +172,22 @@ static void udb_cb(u4srv_t *s, u4clnt_t *c, char *buf, ssize_t len, void *user_d
 
 static void process_env(void)
 {
-	char *ip_arg;
-	char *port_arg;
-
-	ip_arg = getenv("MCIP");
+	char *ip_arg = getenv("MCIP");
 	if(ip_arg) { g_ip = ip_arg; }
 
-	port_arg = getenv("PORT");
+	char *port_arg = getenv("PORT");
 	if(port_arg) { g_srv_port = atoi(port_arg); }
+
+	if(atoi(getenv("BAILONMISS")) != 0) {
+		g_bail_on_miss = 1;
+	}
 }
 
 int main(int argc, char *argv[])
 {
-	int z;
-
 	process_env();
 
-	z = as_udp4_bind_mcast(&g_srv, g_ip, g_srv_port, &udb_cb, NULL, 25);
+	int z = as_udp4_bind_mcast(&g_srv, g_ip, g_srv_port, &udb_cb, NULL, 25);
 	if(z < 0) {
 		fprintf(stderr, "as_udp4_bind_mcast(%s, %u) failed!\n", g_ip, g_srv_port);
 		exit(1);
@@ -193,6 +205,7 @@ int main(int argc, char *argv[])
 	as_udp4_server_halt(&g_srv);
 
 	if(g_sigcaught) { exit(99); }
+	if(g_miss) { exit(98); }
 
 	return 0;
 }
